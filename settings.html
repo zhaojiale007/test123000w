@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>应用设置</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #f4f6f8;
+            --card-bg-color: #ffffff;
+            --text-color: #1a1a1a;
+            --subtext-color: #666;
+            --border-color: #e5e5e5;
+            --primary-color: #007aff;
+            --danger-color: #ff3b30;
+            --font-main: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 2rem;
+        }
+        .settings-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: var(--card-bg-color);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        h1 {
+            text-align: center;
+            margin: 0 0 2rem 0;
+            font-size: 1.8rem;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .form-group label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            font-size: 1rem;
+            font-family: inherit;
+        }
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            font-family: "Courier New", monospace;
+            font-size: 0.9rem;
+            min-height: 300px;
+            resize: vertical;
+        }
+        .form-group .help-text {
+            font-size: 0.85rem;
+            color: var(--subtext-color);
+            margin-top: 0.5rem;
+        }
+        #save-button {
+            width: 100%;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.8rem 1rem;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        /* Modal and Toast */
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4); display: none; justify-content: center; align-items: center;
+            backdrop-filter: blur(4px); z-index: 1000;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: var(--card-bg-color); width: 90%; max-width: 400px; padding: 1.5rem;
+            border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .modal-content h3 { margin: 0 0 1rem 0; }
+        .modal-content input {
+            width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-color);
+            font-size: 1rem; box-sizing: border-box; margin-bottom: 1rem;
+        }
+        .primary-btn {
+            background-color: var(--primary-color); color: white; border: none; padding: 0.5rem 1rem;
+            border-radius: 8px; font-weight: 500; cursor: pointer;
+        }
+        #toast {
+            position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%);
+            background: rgba(20, 20, 20, 0.9); color: white; padding: 0.75rem 1.5rem;
+            border-radius: 8px; z-index: 1001;
+            opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0.3s;
+        }
+        #toast.show { opacity: 1; visibility: visible; }
+    </style>
+</head>
+<body>
+    <div class="settings-container">
+        <h1>应用设置</h1>
+        <div id="settings-form">
+            <!-- Form will be dynamically generated here -->
+            <p>正在加载配置...</p>
+        </div>
+        <button id="save-button">保存更改</button>
+    </div>
+
+    <div id="auth-modal" class="modal">
+        <div class="modal-content">
+            <h3>需要验证</h3>
+            <input type="password" id="auth-password" placeholder="请输入密码">
+            <div class="modal-actions">
+                <button id="auth-submit" class="primary-btn">确认</button>
+            </div>
+        </div>
+    </div>
+    <div id="toast"></div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        let appData = null;
+        let password = null;
+        let actionQueue = [];
+        const formContainer = document.getElementById('settings-form');
+        const saveButton = document.getElementById('save-button');
+        const authModal = document.getElementById('auth-modal');
+
+        // --- Authentication ---
+        function getAuthHeader() {
+            if (!password) return null;
+            return 'Bearer ' + password;
+        }
+        function requestAuth(action) {
+            actionQueue.push(action);
+            authModal.classList.add('active');
+        }
+        document.getElementById('auth-submit').addEventListener('click', () => {
+            const passInput = document.getElementById('auth-password');
+            if (passInput.value) {
+                password = passInput.value;
+                authModal.classList.remove('active');
+                passInput.value = '';
+                while(actionQueue.length > 0) { actionQueue.shift()(); }
+            }
+        });
+
+        // --- Data Sync ---
+        async function loadData() {
+            if (!password) { requestAuth(loadData); return; }
+            try {
+                const response = await fetch('/api/get-data', { headers: { 'Authorization': getAuthHeader() } });
+                if (response.status === 401 || response.status === 403) {
+                    password = null; requestAuth(loadData); showToast('密码错误或已失效'); return;
+                }
+                if (!response.ok) throw new Error(`服务器错误: ${response.statusText}`);
+                appData = await response.json();
+                renderForm();
+            } catch (error) { showToast(`加载失败: ${error.message}`); }
+        }
+
+        // --- Form Rendering ---
+        function renderForm() {
+            formContainer.innerHTML = `
+                <div class="form-group">
+                    <label for="meta-title">网站标题</label>
+                    <input type="text" id="meta-title" value="${appData.meta.title || ''}">
+                </div>
+                <div class="form-group">
+                    <label for="settings-theme">主题</label>
+                    <select id="settings-theme">
+                        <option value="light" ${appData.settings.theme === 'light' ? 'selected' : ''}>明亮</option>
+                        <option value="dark" ${appData.settings.theme === 'dark' ? 'selected' : ''}>暗黑</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="settings-accentColor">主题色</label>
+                    <input type="color" id="settings-accentColor" value="${appData.settings.accentColor || '#007aff'}">
+                </div>
+                <div class="form-group">
+                    <label for="settings-backgroundImage">背景图片 URL</label>
+                    <input type="url" id="settings-backgroundImage" value="${appData.settings.backgroundImage || ''}">
+                    <p class="help-text">留空则为纯色背景。</p>
+                </div>
+                <div class="form-group">
+                    <label for="blocks-json">功能区块 (JSON)</label>
+                    <textarea id="blocks-json">${JSON.stringify(appData.blocks, null, 2)}</textarea>
+                    <p class="help-text">在这里编辑、排序、增删功能模块。请确保这是有效的 JSON 格式。</p>
+                </div>
+            `;
+        }
+
+        // --- Save Handler ---
+        saveButton.addEventListener('click', async () => {
+            const newAppData = { ...appData };
+            
+            // Collect data from form
+            newAppData.meta.title = document.getElementById('meta-title').value;
+            newAppData.settings.theme = document.getElementById('settings-theme').value;
+            newAppData.settings.accentColor = document.getElementById('settings-accentColor').value;
+            newAppData.settings.backgroundImage = document.getElementById('settings-backgroundImage').value;
+
+            const blocksJson = document.getElementById('blocks-json').value;
+            try {
+                newAppData.blocks = JSON.parse(blocksJson);
+            } catch (e) {
+                showToast('错误：功能区块不是有效的 JSON 格式！');
+                return;
+            }
+
+            // Save data
+            if (!password) { requestAuth(() => saveData(newAppData)); return; }
+            try {
+                const response = await fetch('/api/save-data', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': getAuthHeader() },
+                    body: JSON.stringify(newAppData)
+                });
+                if (response.status === 401 || response.status === 403) {
+                    password = null; requestAuth(() => saveData(newAppData)); showToast('密码错误，无法保存'); return;
+                }
+                if (!response.ok) throw new Error(`保存失败: ${response.statusText}`);
+                showToast('保存成功！新设置将在主页刷新后生效。');
+                appData = newAppData; // Update local state
+            } catch (error) { showToast(`保存失败: ${error.message}`); }
+        });
+
+        // --- Toast Notifications ---
+        function showToast(message, duration = 3000) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), duration);
+        }
+        
+        // --- Initial Load ---
+        loadData();
+    });
+    </script>
+</body>
+</html>
