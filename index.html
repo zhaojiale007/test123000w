@@ -9,39 +9,99 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #f7f7f8;
-            --block-bg-color: #ffffff;
+            --bg-color: #f4f6f8;
+            --sidebar-bg: #ffffff;
+            --block-bg: #ffffff;
             --text-color: #1a1a1a;
             --subtext-color: #666;
-            --primary-color: #007aff;
             --border-color: #e5e5e5;
-            --shadow: 0 4px 6px rgba(0,0,0,0.04);
-            --font-main: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --shadow: 0 1px 3px rgba(0,0,0,0.05);
+            --primary-color: #007aff;
+            --font-main: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            --sidebar-width: 240px;
+        }
+        body.theme-dark {
+            --bg-color: #121212;
+            --sidebar-bg: #1e1e1e;
+            --block-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --subtext-color: #a0a0a0;
+            --border-color: #333;
+        }
+        body.font-serif {
+            --font-main: 'Georgia', serif;
+        }
+        * {
+            box-sizing: border-box;
         }
         body {
             font-family: var(--font-main);
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
-            padding: 1.5rem;
+            transition: background-color 0.3s, color 0.3s;
         }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
+        #app-container {
+            display: flex;
+            height: 100vh;
         }
-        header { text-align: center; margin-bottom: 2.5rem; }
-        header h1 { font-size: 2.5rem; font-weight: 700; margin: 0; }
-        .grid-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            gap: 1.5rem;
+        #sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid var(--border-color);
+            padding: 1.5rem 1rem;
+            display: flex;
+            flex-direction: column;
+            transition: background-color 0.3s, border-color 0.3s;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+        #sidebar-header {
+            font-size: 1.5rem;
+            font-weight: 700;
+            padding: 0 0.5rem 1.5rem 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 1rem;
+        }
+        #sidebar-nav {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .nav-item a {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 0.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            color: var(--subtext-color);
+            font-weight: 500;
+            transition: background-color 0.2s, color 0.2s;
+        }
+        .nav-item a:hover {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+        .nav-item a.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        .nav-item .icon {
+            margin-right: 0.75rem;
+        }
+        #main-content {
+            flex-grow: 1;
+            padding: 2rem;
+            overflow-y: auto;
         }
         .content-block {
-            background-color: var(--block-bg-color);
+            background-color: var(--block-bg);
             border-radius: 12px;
             padding: 1.5rem;
             box-shadow: var(--shadow);
             border: 1px solid var(--border-color);
+            margin-bottom: 2rem;
+            scroll-margin-top: 2rem;
         }
         .block-header {
             display: flex;
@@ -53,301 +113,359 @@
         }
         .block-header h2 { margin: 0; font-size: 1.25rem; }
         .item-list { list-style: none; padding: 0; margin: 0; }
-        .link-item, .clip-item {
+        .list-item {
             display: flex;
             align-items: center;
             padding: 0.75rem 0.5rem;
             border-radius: 8px;
-            transition: background-color 0.2s ease-in-out;
+            transition: background-color 0.2s;
             position: relative;
         }
-        .link-item:hover, .clip-item:hover { background-color: #f0f0f0; }
-        .link-item a {
-            display: flex;
-            align-items: center;
-            text-decoration: none;
-            color: var(--text-color);
-            font-weight: 500;
-            flex-grow: 1;
+        .list-item:hover { background-color: var(--bg-color); }
+        .list-item a {
+            display: flex; align-items: center; text-decoration: none;
+            color: var(--text-color); font-weight: 500; flex-grow: 1;
         }
-        .link-item img.favicon { width: 20px; height: 20px; margin-right: 0.75rem; }
-        .clip-item-content { flex-grow: 1; }
-        .clip-item-title { font-weight: 500; display: block; margin-bottom: 0.25rem; }
-        .clip-item-text { font-size: 0.9rem; color: var(--subtext-color); word-break: break-all; }
+        .list-item img.favicon { width: 20px; height: 20px; margin-right: 0.75rem; }
+        .list-item-content { flex-grow: 1; }
+        .list-item-title { font-weight: 500; display: block; margin-bottom: 0.25rem; }
+        .list-item-text { font-size: 0.9rem; color: var(--subtext-color); word-break: break-all; }
         .item-actions {
-            display: flex;
-            gap: 0.5rem;
-            position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%);
-            opacity: 0; transition: opacity 0.2s;
+            display: flex; gap: 0.5rem; opacity: 0; transition: opacity 0.2s;
         }
-        .link-item:hover .item-actions, .clip-item:hover .item-actions { opacity: 1; }
+        .list-item:hover .item-actions { opacity: 1; }
         .action-btn { background: none; border: none; cursor: pointer; font-size: 1rem; color: var(--subtext-color); padding: 4px; }
-        .add-button {
-            background-color: var(--primary-color); color: white; border: none; width: 32px; height: 32px;
-            border-radius: 50%; font-size: 1.5rem; line-height: 32px; text-align: center; cursor: pointer;
-            box-shadow: 0 2px 4px rgba(0, 122, 255, 0.3);
+        .add-form { display: flex; gap: 10px; margin-top: 1rem; }
+        .add-form input {
+            flex-grow: 1; padding: 0.5rem 0.75rem; border: 1px solid var(--border-color);
+            border-radius: 8px; background-color: var(--bg-color); color: var(--text-color);
         }
+        .add-form button {
+            background-color: var(--primary-color); color: white; border: none; padding: 0.5rem 1rem;
+            border-radius: 8px; font-weight: 500; cursor: pointer;
+        }
+        /* Tools styles */
+        .tool-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+        .tool-grid textarea {
+            width: 100%; height: 120px; padding: 0.75rem; border-radius: 8px;
+            border: 1px solid var(--border-color); background-color: var(--bg-color);
+            color: var(--text-color); resize: vertical;
+        }
+        .tool-grid .arrow { text-align: center; font-size: 1.5rem; }
+        /* Modal and Toast */
         .modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.4); display: none; justify-content: center; align-items: center;
-            backdrop-filter: blur(4px);
+            backdrop-filter: blur(4px); z-index: 1000;
         }
         .modal.active { display: flex; }
         .modal-content {
-            background: var(--block-bg-color); width: 90%; max-width: 400px; padding: 1.5rem;
+            background: var(--block-bg); width: 90%; max-width: 400px; padding: 1.5rem;
             border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            display: flex; flex-direction: column; gap: 1rem;
         }
-        .modal-content h3 { margin: 0; }
+        .modal-content h3 { margin: 0 0 1rem 0; }
         .modal-content input {
             width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-color);
-            font-size: 1rem; box-sizing: border-box;
+            font-size: 1rem; box-sizing: border-box; margin-bottom: 1rem;
         }
-        .modal-actions { display: flex; justify-content: flex-end; gap: 0.75rem; }
-        .modal-btn { padding: 0.5rem 1rem; border-radius: 8px; border: none; font-weight: 500; cursor: pointer; }
-        .modal-btn.primary { background-color: var(--primary-color); color: white; }
-        .modal-btn.secondary { background-color: #e5e5e5; color: var(--text-color); }
+        .modal-actions { display: flex; justify-content: flex-end; }
+        .primary-btn {
+            background-color: var(--primary-color); color: white; border: none; padding: 0.5rem 1rem;
+            border-radius: 8px; font-weight: 500; cursor: pointer;
+        }
         #toast {
             position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%);
             background: rgba(20, 20, 20, 0.9); color: white; padding: 0.75rem 1.5rem;
-            border-radius: 8px; z-index: 1000;
+            border-radius: 8px; z-index: 1001;
             opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0.3s;
         }
         #toast.show { opacity: 1; visibility: visible; }
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            #app-container { flex-direction: column; height: auto; }
+            #sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+                height: auto;
+                padding: 1rem;
+            }
+            #sidebar-header { padding-bottom: 1rem; }
+            #main-content { padding: 1rem; }
+            .content-block { scroll-margin-top: 1rem; }
+        }
     </style>
 </head>
 <body>
-
-<div class="container">
-    <header><h1 id="page-title"></h1></header>
-    <main id="main-grid" class="grid-container"></main>
-</div>
-
-<!-- Modals -->
-<div id="auth-modal" class="modal">
-    <div class="modal-content">
-        <h3>身份验证</h3>
-        <input type="text" id="auth-user" placeholder="用户名">
-        <input type="password" id="auth-pass" placeholder="密码">
-        <div class="modal-actions">
-            <button id="auth-submit" class="modal-btn primary">确认</button>
+    <div id="app-container">
+        <aside id="sidebar"></aside>
+        <main id="main-content"></main>
+    </div>
+    
+    <div id="auth-modal" class="modal">
+        <div class="modal-content">
+            <h3>需要验证</h3>
+            <input type="password" id="auth-password" placeholder="请输入密码">
+            <div class="modal-actions">
+                <button id="auth-submit" class="primary-btn">确认</button>
+            </div>
         </div>
     </div>
-</div>
-<div id="add-link-modal" class="modal">
-    <div class="modal-content">
-        <h3>添加新链接</h3>
-        <input type="text" id="link-name" placeholder="名称 (e.g., Google)">
-        <input type="url" id="link-url" placeholder="URL (e.g., https://google.com)">
-        <div class="modal-actions">
-            <button class="modal-btn secondary" onclick="closeModal('add-link-modal')">取消</button>
-            <button id="add-link-submit" class="modal-btn primary">添加</button>
-        </div>
-    </div>
-</div>
-<div id="add-clip-modal" class="modal">
-    <div class="modal-content">
-        <h3>添加新备忘录</h3>
-        <input type="text" id="clip-title" placeholder="标题">
-        <input type="text" id="clip-text" placeholder="内容">
-        <div class="modal-actions">
-            <button class="modal-btn secondary" onclick="closeModal('add-clip-modal')">取消</button>
-            <button id="add-clip-submit" class="modal-btn primary">添加</button>
-        </div>
-    </div>
-</div>
+    <div id="toast"></div>
 
-<div id="toast"></div>
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- App State & Elements ---
+        let appData = null;
+        let password = null;
+        let actionQueue = [];
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('main-content');
+        const authModal = document.getElementById('auth-modal');
 
-<script>
-    // --- App State & Elements ---
-    let appData = null;
-    let credentials = null;
-    let actionQueue = [];
-    const mainGrid = document.getElementById('main-grid');
-    const pageTitle = document.getElementById('page-title');
-
-    // --- Modal Management ---
-    function openModal(id) { document.getElementById(id).classList.add('active'); }
-    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-
-    // --- Toast Notifications ---
-    function showToast(message, duration = 3000) {
-        const toast = document.getElementById('toast');
-        toast.textContent = message;
-        toast.classList.add('show');
-        setTimeout(() => toast.classList.remove('show'), duration);
-    }
-
-    // --- Authentication ---
-    function getAuthHeader() {
-        if (!credentials) return null;
-        return 'Basic ' + btoa(`${credentials.user}:${credentials.pass}`);
-    }
-    function requestAuth(action) {
-        actionQueue.push(action);
-        openModal('auth-modal');
-    }
-    document.getElementById('auth-submit').addEventListener('click', () => {
-        const user = document.getElementById('auth-user').value;
-        const pass = document.getElementById('auth-pass').value;
-        if (user && pass) {
-            credentials = { user, pass };
-            closeModal('auth-modal');
-            document.getElementById('auth-user').value = '';
-            document.getElementById('auth-pass').value = '';
-            while(actionQueue.length > 0) { actionQueue.shift()(); }
+        // --- Authentication ---
+        function getAuthHeader() {
+            if (!password) return null;
+            return 'Bearer ' + password;
         }
-    });
-
-    // --- Data Sync ---
-    async function loadData() {
-        if (!credentials) { requestAuth(loadData); return; }
-        try {
-            const response = await fetch('/api/get-data', { headers: { 'Authorization': getAuthHeader() } });
-            if (response.status === 401 || response.status === 403) {
-                credentials = null; requestAuth(loadData); return;
+        function requestAuth(action) {
+            actionQueue.push(action);
+            authModal.classList.add('active');
+        }
+        document.getElementById('auth-submit').addEventListener('click', () => {
+            const passInput = document.getElementById('auth-password');
+            if (passInput.value) {
+                password = passInput.value;
+                authModal.classList.remove('active');
+                passInput.value = '';
+                while(actionQueue.length > 0) { actionQueue.shift()(); }
             }
-            if (!response.ok) throw new Error(`服务器错误: ${response.statusText}`);
-            appData = await response.json();
-            render();
-        } catch (error) { showToast(`加载失败: ${error.message}`); }
-    }
-    async function saveData() {
-        if (!credentials) { requestAuth(saveData); return; }
-        try {
-            const response = await fetch('/api/save-data', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': getAuthHeader() },
-                body: JSON.stringify(appData)
+        });
+
+        // --- Data Sync ---
+        async function loadData() {
+            if (!password) { requestAuth(loadData); return; }
+            try {
+                const response = await fetch('/api/get-data', { headers: { 'Authorization': getAuthHeader() } });
+                if (response.status === 401 || response.status === 403) {
+                    password = null; requestAuth(loadData); showToast('密码错误或已失效'); return;
+                }
+                if (!response.ok) throw new Error(`服务器错误: ${response.statusText}`);
+                appData = await response.json();
+                applySettings();
+                render();
+            } catch (error) { showToast(`加载失败: ${error.message}`); }
+        }
+
+        async function saveData() {
+            if (!password) { requestAuth(saveData); return; }
+            try {
+                const response = await fetch('/api/save-data', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': getAuthHeader() },
+                    body: JSON.stringify(appData)
+                });
+                if (response.status === 401 || response.status === 403) {
+                    password = null; requestAuth(saveData); showToast('密码错误，无法保存'); return;
+                }
+                if (!response.ok) throw new Error(`保存失败: ${response.statusText}`);
+                showToast('保存成功！');
+            } catch (error) { showToast(`保存失败: ${error.message}`); }
+        }
+        
+        // --- Settings & Rendering ---
+        function applySettings() {
+            const settings = appData.settings;
+            const meta = appData.meta;
+            if(!settings || !meta) return;
+
+            document.title = meta.title || "My Dashboard";
+            const favicon = document.querySelector("link[rel*='icon']") || document.createElement('link');
+            favicon.type = 'image/svg+xml';
+            favicon.rel = 'shortcut icon';
+            favicon.href = meta.favicon;
+            document.getElementsByTagName('head')[0].appendChild(favicon);
+
+            const body = document.body;
+            body.classList.toggle('theme-dark', settings.theme === 'dark');
+            body.classList.toggle('font-serif', settings.font === 'serif');
+            
+            const root = document.documentElement;
+            root.style.setProperty('--primary-color', settings.accentColor || '#007aff');
+            root.style.setProperty('--sidebar-width', settings.sidebarWidth || '240px');
+            if(settings.backgroundImage) {
+                body.style.backgroundImage = `url(${settings.backgroundImage})`;
+                body.style.backgroundSize = 'cover';
+                body.style.backgroundPosition = 'center';
+                body.style.backgroundAttachment = 'fixed';
+            }
+        }
+        
+        function render() {
+            if (!appData) return;
+            renderSidebar();
+            renderMainContent();
+        }
+
+        function renderSidebar() {
+            sidebar.innerHTML = `<h1 id="sidebar-header">${appData.meta.title}</h1><ul id="sidebar-nav"></ul>`;
+            const nav = document.getElementById('sidebar-nav');
+            appData.blocks.forEach(block => {
+                const li = document.createElement('li');
+                li.className = 'nav-item';
+                li.innerHTML = `<a href="#${block.id}"><span class="icon">${block.icon || '📁'}</span>${block.title}</a>`;
+                nav.appendChild(li);
             });
-            if (response.status === 401 || response.status === 403) {
-                credentials = null; requestAuth(saveData); return;
+        }
+
+        function renderMainContent() {
+            mainContent.innerHTML = '';
+            appData.blocks.forEach(block => mainContent.appendChild(renderBlock(block)));
+        }
+
+        function renderBlock(block) {
+            const blockDiv = document.createElement('div');
+            blockDiv.id = block.id;
+            blockDiv.className = 'content-block';
+            blockDiv.innerHTML = `<div class="block-header"><h2>${block.title}</h2></div>`;
+            
+            switch (block.type) {
+                case 'links':
+                    blockDiv.appendChild(renderLinksBlock(block));
+                    break;
+                case 'clipboard':
+                    blockDiv.appendChild(renderClipboardBlock(block));
+                    break;
+                case 'base64-converter':
+                    blockDiv.appendChild(renderBase64ConverterBlock(block));
+                    break;
             }
-            if (!response.ok) throw new Error(`保存失败: ${response.statusText}`);
-            showToast('保存成功！');
-        } catch (error) { showToast(`保存失败: ${error.message}`); }
-    }
-
-    // --- Render Logic ---
-    function render() {
-        if (!appData) return;
-        pageTitle.textContent = appData.title;
-        document.title = appData.title;
-        mainGrid.innerHTML = ''; // Clear grid
-
-        // Render Links Block
-        const linksBlock = createContentBlock('导航链接', 'links', openAddLinkModal);
-        const linkList = linksBlock.querySelector('.item-list');
-        appData.links.forEach(link => linkList.appendChild(createLinkItem(link)));
-        mainGrid.appendChild(linksBlock);
-
-        // Render Clipboard Block
-        const clipboardBlock = createContentBlock('备忘录', 'clipboard', openAddClipModal);
-        const clipList = clipboardBlock.querySelector('.item-list');
-        appData.clipboard.forEach(clip => clipList.appendChild(createClipItem(clip)));
-        mainGrid.appendChild(clipboardBlock);
-    }
-
-    function createContentBlock(title, type, addHandler) {
-        const block = document.createElement('div');
-        block.className = 'content-block';
-        block.innerHTML = `
-            <div class="block-header">
-                <h2>${title}</h2>
-                <button class="add-button">+</button>
-            </div>
-            <ul class="item-list" data-type="${type}"></ul>
-        `;
-        block.querySelector('.add-button').addEventListener('click', addHandler);
-        return block;
-    }
-
-    function createLinkItem(link) {
-        const li = document.createElement('li');
-        li.className = 'link-item';
-        li.dataset.id = link.id;
-        li.innerHTML = `
-            <a href="${link.url}" target="_blank" rel="noopener noreferrer">
-                <img class="favicon" src="https://www.google.com/s2/favicons?sz=64&domain_url=${encodeURIComponent(link.url)}" alt="">
-                <span>${link.name}</span>
-            </a>
-            <div class="item-actions">
-                <button class="action-btn delete-btn">🗑️</button>
-            </div>
-        `;
-        return li;
-    }
-
-    function createClipItem(clip) {
-        const li = document.createElement('li');
-        li.className = 'clip-item';
-        li.dataset.id = clip.id;
-        li.innerHTML = `
-            <div class="clip-item-content">
-                <strong class="clip-item-title">${clip.title}</strong>
-                <p class="clip-item-text">${clip.text}</p>
-            </div>
-            <div class="item-actions">
-                <button class="action-btn copy-btn">📋</button>
-                <button class="action-btn delete-btn">🗑️</button>
-            </div>
-        `;
-        return li;
-    }
-
-    // --- Event Handlers & Modal Logic ---
-    function openAddLinkModal() { openModal('add-link-modal'); }
-    function openAddClipModal() { openModal('add-clip-modal'); }
-
-    document.getElementById('add-link-submit').addEventListener('click', () => {
-        const name = document.getElementById('link-name').value;
-        const url = document.getElementById('link-url').value;
-        if (name && url) {
-            appData.links.push({ id: Date.now().toString(), name, url });
-            render();
-            saveData();
-            document.getElementById('link-name').value = '';
-            document.getElementById('link-url').value = '';
-            closeModal('add-link-modal');
+            return blockDiv;
         }
-    });
 
-    document.getElementById('add-clip-submit').addEventListener('click', () => {
-        const title = document.getElementById('clip-title').value;
-        const text = document.getElementById('clip-text').value;
-        if (title && text) {
-            appData.clipboard.push({ id: Date.now().toString(), title, text });
-            render();
-            saveData();
-            document.getElementById('clip-title').value = '';
-            document.getElementById('clip-text').value = '';
-            closeModal('add-clip-modal');
+        // --- Block Specific Renderers ---
+        function renderLinksBlock(block) {
+            const container = document.createElement('div');
+            const list = document.createElement('ul');
+            list.className = 'item-list';
+            block.data.forEach(item => {
+                const li = document.createElement('li');
+                li.className = 'list-item';
+                li.innerHTML = `
+                    <a href="${item.url}" target="_blank" rel="noopener noreferrer">
+                        <img class="favicon" src="https://www.google.com/s2/favicons?sz=64&domain_url=${encodeURIComponent(item.url)}" alt="">
+                        <span>${item.name}</span>
+                    </a>
+                    <div class="item-actions"><button data-id="${item.id}" class="action-btn delete-btn">🗑️</button></div>`;
+                list.appendChild(li);
+            });
+            container.appendChild(list);
+
+            const form = document.createElement('form');
+            form.className = 'add-form';
+            form.innerHTML = `
+                <input type="text" name="name" placeholder="名称" required>
+                <input type="url" name="url" placeholder="https://..." required>
+                <button type="submit">添加</button>`;
+            form.addEventListener('submit', e => {
+                e.preventDefault();
+                const name = e.target.name.value;
+                const url = e.target.url.value;
+                block.data.push({ id: `l${Date.now()}`, name, url });
+                render();
+                saveData();
+            });
+            container.appendChild(form);
+            return container;
         }
-    });
 
-    // Delegated events for actions
-    mainGrid.addEventListener('click', e => {
-        const target = e.target.closest('.action-btn');
-        if (!target) return;
+        function renderClipboardBlock(block) {
+             const container = document.createElement('div');
+            const list = document.createElement('ul');
+            list.className = 'item-list';
+            block.data.forEach(item => {
+                const li = document.createElement('li');
+                li.className = 'list-item';
+                li.innerHTML = `
+                    <div class="list-item-content">
+                        <strong class="list-item-title">${item.title}</strong>
+                        <p class="list-item-text">${item.text}</p>
+                    </div>
+                    <div class="item-actions">
+                        <button data-text="${item.text}" class="action-btn copy-btn">📋</button>
+                        <button data-id="${item.id}" class="action-btn delete-btn">🗑️</button>
+                    </div>`;
+                list.appendChild(li);
+            });
+            container.appendChild(list);
 
-        const itemElement = e.target.closest('.link-item, .clip-item');
-        const id = itemElement.dataset.id;
-        const type = itemElement.parentElement.dataset.type;
-
-        if (target.classList.contains('delete-btn')) {
-            appData[type] = appData[type].filter(item => item.id !== id);
-            render();
-            saveData();
-        } else if (target.classList.contains('copy-btn')) {
-            const textToCopy = itemElement.querySelector('.clip-item-text').textContent;
-            navigator.clipboard.writeText(textToCopy).then(() => showToast('已复制到剪贴板'));
+            const form = document.createElement('form');
+            form.className = 'add-form';
+            form.innerHTML = `
+                <input type="text" name="title" placeholder="标题" required>
+                <input type="text" name="text" placeholder="内容" required>
+                <button type="submit">添加</button>`;
+            form.addEventListener('submit', e => {
+                e.preventDefault();
+                const title = e.target.title.value;
+                const text = e.target.text.value;
+                block.data.push({ id: `c${Date.now()}`, title, text });
+                render();
+                saveData();
+            });
+            container.appendChild(form);
+            return container;
         }
+
+        function renderBase64ConverterBlock(block) {
+            const container = document.createElement('div');
+            container.className = 'tool-grid';
+            container.innerHTML = `
+                <textarea class="base64-input" placeholder="输入要编码的文本..."></textarea>
+                <div class="arrow">↓ ↑</div>
+                <textarea class="base64-output" placeholder="输入要解码的 Base64..."></textarea>`;
+            
+            const input = container.querySelector('.base64-input');
+            const output = container.querySelector('.base64-output');
+            
+            input.addEventListener('input', () => {
+                try { output.value = btoa(input.value); } catch (e) { output.value = '无效输入'; }
+            });
+            output.addEventListener('input', () => {
+                try { input.value = atob(output.value); } catch (e) { input.value = '无效 Base64'; }
+            });
+
+            return container;
+        }
+
+        // --- Event Handlers ---
+        mainContent.addEventListener('click', e => {
+            if (e.target.classList.contains('delete-btn')) {
+                const button = e.target;
+                const blockDiv = button.closest('.content-block');
+                const block = appData.blocks.find(b => b.id === blockDiv.id);
+                if(block && block.data) {
+                    block.data = block.data.filter(item => item.id !== button.dataset.id);
+                    render();
+                    saveData();
+                }
+            }
+             if (e.target.classList.contains('copy-btn')) {
+                navigator.clipboard.writeText(e.target.dataset.text).then(() => showToast('已复制到剪贴板'));
+            }
+        });
+        
+        // --- Toast Notifications ---
+        function showToast(message, duration = 3000) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), duration);
+        }
+
+        // --- Initial Load ---
+        loadData();
     });
-
-    // --- Initial Load ---
-    document.addEventListener('DOMContentLoaded', loadData);
-</script>
-
+    </script>
 </body>
 </html>
