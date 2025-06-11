@@ -1,0 +1,78 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vercel 连接测试器</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; padding: 20px; max-width: 800px; margin: auto; background-color: #f4f4f9; }
+        h1 { color: #333; }
+        button { background-color: #0070f3; color: white; border: none; padding: 10px 20px; border-radius: 5px; font-size: 16px; cursor: pointer; transition: background-color 0.2s; }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        #result { background-color: #e3e3e3; border-left: 5px solid #0070f3; padding: 15px; margin-top: 20px; white-space: pre-wrap; word-wrap: break-word; font-family: "Courier New", Courier, monospace; }
+        .error { border-left-color: #d9534f; }
+    </style>
+</head>
+<body>
+
+    <h1>Vercel Web 连接测试器</h1>
+    <p>点击下方按钮，以测试 Vercel 服务器到你在环境变量中配置的目标服务器的连接性。</p>
+    
+    <button id="testButton">运行连接测试</button>
+
+    <div id="result">
+        <p>测试结果将显示在这里。</p>
+    </div>
+
+    <script>
+        const testButton = document.getElementById('testButton');
+        const resultDiv = document.getElementById('result');
+
+        testButton.addEventListener('click', async () => {
+            // 提示用户输入用于访问 API 的凭据
+            const user = prompt("请输入访问此测试器的用户名:", "");
+            if (user === null) return; // 用户取消
+            const pass = prompt("请输入访问此测试器的密码:", "");
+            if (pass === null) return; // 用户取消
+
+            // 禁用按钮并显示加载状态
+            testButton.disabled = true;
+            testButton.textContent = '正在测试...';
+            resultDiv.textContent = '请稍候...';
+            resultDiv.classList.remove('error');
+
+            try {
+                // 使用 fetch 调用后端的 /api/test
+                const response = await fetch('/api/test', {
+                    method: 'GET',
+                    headers: {
+                        // 创建 Basic Auth 头
+                        'Authorization': 'Basic ' + btoa(user + ':' + pass)
+                    }
+                });
+
+                // 解析 JSON 结果
+                const data = await response.json();
+
+                // 美化输出并显示结果
+                resultDiv.textContent = JSON.stringify(data, null, 2);
+                if (data.status === 'error' || response.status >= 400) {
+                    resultDiv.classList.add('error');
+                }
+
+            } catch (err) {
+                // 处理网络错误
+                resultDiv.textContent = '调用测试API时出错: ' + err.message;
+                resultDiv.classList.add('error');
+            } finally {
+                // 重新启用按钮
+                testButton.disabled = false;
+                testButton.textContent = '再次运行连接测试';
+            }
+        });
+    </script>
+
+</body>
+</html>
