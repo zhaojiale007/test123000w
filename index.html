@@ -1,93 +1,346 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vercel WebDAV 上传器</title>
+    <title>我的导航页</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; padding: 20px; max-width: 800px; margin: auto; background-color: #f4f4f9; }
-        h1 { color: #333; }
-        button { background-color: #0070f3; color: white; border: none; padding: 10px 20px; border-radius: 5px; font-size: 16px; cursor: pointer; transition: background-color 0.2s; }
-        button:hover { background-color: #0056b3; }
-        button:disabled { background-color: #ccc; cursor: not-allowed; }
-        #result { background-color: #e3e3e3; border-left: 5px solid #0070f3; padding: 15px; margin-top: 20px; white-space: pre-wrap; word-wrap: break-word; font-family: "Courier New", Courier, monospace; }
-        .error { border-left-color: #d9534f; }
-        .file-input-wrapper { margin-bottom: 20px; }
+        :root {
+            --bg-color: #f0f2f5;
+            --card-bg-color: #ffffff;
+            --text-color: #1f2329;
+            --subtext-color: #646a73;
+            --primary-color: #0070f3;
+            --border-color: #e1e4e8;
+            --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.12);
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 900px;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 20px;
+        }
+        header h1 {
+            margin: 0;
+            font-size: 2.5em;
+        }
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .card {
+            background-color: var(--card-bg-color);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+        }
+        .card h2 {
+            margin-top: 0;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+        .item-list {
+            list-style: none;
+            padding: 0;
+            flex-grow: 1;
+        }
+        .item {
+            display: flex;
+            align-items: center;
+            padding: 10px 5px;
+            border-radius: 5px;
+            transition: background-color 0.2s;
+        }
+        .item:hover {
+            background-color: var(--bg-color);
+        }
+        .item a {
+            text-decoration: none;
+            color: var(--text-color);
+            font-weight: 500;
+            flex-grow: 1;
+        }
+        .item .icon {
+            font-size: 1.2em;
+            margin-right: 12px;
+            width: 24px;
+            text-align: center;
+        }
+        .item .actions button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            color: var(--subtext-color);
+            opacity: 0.5;
+            transition: opacity 0.2s;
+        }
+        .item:hover .actions button {
+            opacity: 1;
+        }
+        .add-form {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        .add-form input {
+            flex-grow: 1;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+        }
+        .add-form button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .clipboard-text {
+            word-break: break-all;
+            flex-grow: 1;
+            padding-right: 10px;
+        }
+        #auth-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center;
+        }
+        .modal-content {
+            background: white; padding: 30px; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            display: flex; flex-direction: column; gap: 15px;
+        }
     </style>
 </head>
 <body>
 
-    <h1>Vercel WebDAV 上传器</h1>
-    <p>选择一个文件，然后点击上传按钮。文件将被上传到你在环境变量中配置的 `TARGET_URL` 服务器。</p>
+<div class="container">
+    <header>
+        <h1 id="page-title">正在加载...</h1>
+    </header>
+
+    <main class="grid-container">
+        <section id="links-card" class="card">
+            <h2>导航链接</h2>
+            <ul id="link-list" class="item-list"></ul>
+            <form id="add-link-form" class="add-form">
+                <input type="text" id="link-name" placeholder="名称" required>
+                <input type="url" id="link-url" placeholder="https://..." required>
+                <button type="submit">添加</button>
+            </form>
+        </section>
+
+        <section id="clipboard-card" class="card">
+            <h2>剪贴板</h2>
+            <ul id="clipboard-list" class="item-list"></ul>
+            <form id="add-clip-form" class="add-form">
+                <input type="text" id="clip-text" placeholder="要暂存的文本" required>
+                <button type="submit">添加</button>
+            </form>
+        </section>
+    </main>
+</div>
+
+<div id="auth-modal">
+    <div class="modal-content">
+        <h3>需要身份验证</h3>
+        <input type="text" id="auth-user" placeholder="用户名">
+        <input type="password" id="auth-pass" placeholder="密码">
+        <button id="auth-submit">确认</button>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- State & DOM Elements ---
+    let appData = { title: '', links: [], clipboard: [] };
+    const pageTitle = document.getElementById('page-title');
+    const linkList = document.getElementById('link-list');
+    const clipboardList = document.getElementById('clipboard-list');
     
-    <div class="file-input-wrapper">
-        <input type="file" id="fileInput" />
-    </div>
+    const authModal = document.getElementById('auth-modal');
+    const authUser = document.getElementById('auth-user');
+    const authPass = document.getElementById('auth-pass');
+    
+    let credentials = null; // Store credentials for the session
+    let actionQueue = []; // Queue for actions that need authentication
 
-    <button id="uploadButton">上传文件</button>
+    // --- Authentication ---
+    function getAuthHeader() {
+        if (!credentials) return null;
+        return 'Basic ' + btoa(`${credentials.user}:${credentials.pass}`);
+    }
 
-    <div id="result">
-        <p>操作结果将显示在这里。</p>
-    </div>
+    function requestAuth(action) {
+        actionQueue.push(action);
+        authModal.style.display = 'flex';
+    }
+    
+    document.getElementById('auth-submit').addEventListener('click', () => {
+        if (authUser.value && authPass.value) {
+            credentials = { user: authUser.value, pass: authPass.value };
+            authModal.style.display = 'none';
+            authUser.value = '';
+            authPass.value = '';
+            // Run all queued actions
+            while(actionQueue.length > 0) {
+                actionQueue.shift()();
+            }
+        }
+    });
 
-    <script>
-        const uploadButton = document.getElementById('uploadButton');
-        const fileInput = document.getElementById('fileInput');
-        const resultDiv = document.getElementById('result');
+    // --- Data Fetching and Saving ---
+    async function loadData() {
+        const authHeader = getAuthHeader();
+        if (!authHeader) {
+            requestAuth(loadData);
+            return;
+        }
 
-        uploadButton.addEventListener('click', async () => {
-            // 检查是否已选择文件
-            const file = fileInput.files[0];
-            if (!file) {
-                alert('请先选择一个文件！');
+        try {
+            const response = await fetch('/api/get-data', { headers: { 'Authorization': authHeader } });
+            if (response.status === 401 || response.status === 403) {
+                credentials = null; // Clear bad credentials
+                requestAuth(loadData);
                 return;
             }
+            if (!response.ok) throw new Error(`服务器错误: ${response.statusText}`);
+            
+            appData = await response.json();
+            render();
+        } catch (error) {
+            console.error('加载数据失败:', error);
+            alert('加载数据失败，请检查控制台。');
+        }
+    }
 
-            // 提示用户输入用于访问 API 的凭据
-            const user = prompt("请输入访问此上传器的用户名:", "");
-            if (user === null) return; // 用户取消
-            const pass = prompt("请输入访问此上传器的密码:", "");
-            if (pass === null) return; // 用户取消
-
-            // 禁用按钮并显示加载状态
-            uploadButton.disabled = true;
-            uploadButton.textContent = '正在上传...';
-            resultDiv.textContent = `正在上传文件: ${file.name} (${(file.size / 1024).toFixed(2)} KB)...`;
-            resultDiv.classList.remove('error');
-
-            try {
-                // 使用 fetch 调用后端的 /api/upload
-                const response = await fetch('/api/upload', {
-                    method: 'POST',
-                    headers: {
-                        // 用于保护 Vercel API 的 Basic Auth 头
-                        'Authorization': 'Basic ' + btoa(user + ':' + pass),
-                        // 将文件名放在自定义头中，供后端读取
-                        'X-Filename': file.name,
-                        // 设置内容类型，让后端和目标服务器正确处理
-                        'Content-Type': file.type || 'application/octet-stream'
-                    },
-                    // 直接将文件对象作为请求体
-                    body: file
-                });
-
-                const data = await response.json();
-
-                resultDiv.textContent = JSON.stringify(data, null, 2);
-                if (data.status === 'error' || response.status >= 400) {
-                    resultDiv.classList.add('error');
-                }
-
-            } catch (err) {
-                resultDiv.textContent = '调用上传API时出错: ' + err.message;
-                resultDiv.classList.add('error');
-            } finally {
-                uploadButton.disabled = false;
-                uploadButton.textContent = '再次上传';
+    async function saveData() {
+        const authHeader = getAuthHeader();
+        if (!authHeader) {
+            requestAuth(saveData);
+            return;
+        }
+        try {
+            const response = await fetch('/api/save-data', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
+                body: JSON.stringify(appData)
+            });
+             if (response.status === 401 || response.status === 403) {
+                credentials = null; // Clear bad credentials
+                requestAuth(saveData);
+                return;
             }
+            if (!response.ok) throw new Error(`保存失败: ${response.statusText}`);
+            console.log('数据已保存!');
+        } catch (error) {
+            console.error('保存数据失败:', error);
+            alert('保存数据失败，请检查控制台。');
+        }
+    }
+
+    // --- Rendering ---
+    function render() {
+        document.title = appData.title || '我的导航页';
+        pageTitle.textContent = appData.title || '我的导航页';
+
+        // Render Links
+        linkList.innerHTML = '';
+        appData.links.forEach(link => {
+            const li = document.createElement('li');
+            li.className = 'item';
+            li.dataset.id = link.id;
+            const faviconUrl = `https://www.google.com/s2/favicons?sz=64&domain_url=${link.url}`;
+            li.innerHTML = `
+                <img class="icon" src="${faviconUrl}" alt="icon" onerror="this.style.display='none'">
+                <a href="${link.url}" target="_blank" rel="noopener noreferrer">${link.name}</a>
+                <div class="actions">
+                    <button class="delete-btn">❌</button>
+                </div>
+            `;
+            linkList.appendChild(li);
         });
-    </script>
+
+        // Render Clipboard
+        clipboardList.innerHTML = '';
+        appData.clipboard.forEach(clip => {
+            const li = document.createElement('li');
+            li.className = 'item';
+            li.dataset.id = clip.id;
+            li.innerHTML = `
+                <span class="icon">📋</span>
+                <span class="clipboard-text">${clip.text}</span>
+                <div class="actions">
+                    <button class="copy-btn">📄</button>
+                    <button class="delete-btn">❌</button>
+                </div>
+            `;
+            clipboardList.appendChild(li);
+        });
+    }
+
+    // --- Event Handlers ---
+    document.getElementById('add-link-form').addEventListener('submit', e => {
+        e.preventDefault();
+        const nameInput = document.getElementById('link-name');
+        const urlInput = document.getElementById('link-url');
+        appData.links.push({ id: Date.now().toString(), name: nameInput.value, url: urlInput.value });
+        nameInput.value = '';
+        urlInput.value = '';
+        render();
+        saveData();
+    });
+
+    document.getElementById('add-clip-form').addEventListener('submit', e => {
+        e.preventDefault();
+        const textInput = document.getElementById('clip-text');
+        appData.clipboard.push({ id: Date.now().toString(), text: textInput.value });
+        textInput.value = '';
+        render();
+        saveData();
+    });
+
+    // Delegated event for delete and copy buttons
+    document.querySelector('.container').addEventListener('click', e => {
+        const target = e.target;
+        if (target.classList.contains('delete-btn')) {
+            const itemElement = target.closest('.item');
+            const id = itemElement.dataset.id;
+            const listType = itemElement.parentElement.id === 'link-list' ? 'links' : 'clipboard';
+            appData[listType] = appData[listType].filter(item => item.id !== id);
+            render();
+            saveData();
+        }
+        if (target.classList.contains('copy-btn')) {
+            const textToCopy = target.closest('.item').querySelector('.clipboard-text').textContent;
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                const originalText = target.textContent;
+                target.textContent = '✅';
+                setTimeout(() => { target.textContent = originalText; }, 1000);
+            });
+        }
+    });
+
+    // --- Initial Load ---
+    loadData();
+});
+</script>
 
 </body>
 </html>
