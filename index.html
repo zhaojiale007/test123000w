@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vercel 连接测试器</title>
+    <title>Vercel WebDAV 上传器</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; padding: 20px; max-width: 800px; margin: auto; background-color: #f4f4f9; }
         h1 { color: #333; }
@@ -13,63 +13,78 @@
         button:disabled { background-color: #ccc; cursor: not-allowed; }
         #result { background-color: #e3e3e3; border-left: 5px solid #0070f3; padding: 15px; margin-top: 20px; white-space: pre-wrap; word-wrap: break-word; font-family: "Courier New", Courier, monospace; }
         .error { border-left-color: #d9534f; }
+        .file-input-wrapper { margin-bottom: 20px; }
     </style>
 </head>
 <body>
 
-    <h1>Vercel Web 连接测试器</h1>
-    <p>点击下方按钮，以测试 Vercel 服务器到你在环境变量中配置的目标服务器的连接性。</p>
+    <h1>Vercel WebDAV 上传器</h1>
+    <p>选择一个文件，然后点击上传按钮。文件将被上传到你在环境变量中配置的 `TARGET_URL` 服务器。</p>
     
-    <button id="testButton">运行连接测试</button>
+    <div class="file-input-wrapper">
+        <input type="file" id="fileInput" />
+    </div>
+
+    <button id="uploadButton">上传文件</button>
 
     <div id="result">
-        <p>测试结果将显示在这里。</p>
+        <p>操作结果将显示在这里。</p>
     </div>
 
     <script>
-        const testButton = document.getElementById('testButton');
+        const uploadButton = document.getElementById('uploadButton');
+        const fileInput = document.getElementById('fileInput');
         const resultDiv = document.getElementById('result');
 
-        testButton.addEventListener('click', async () => {
+        uploadButton.addEventListener('click', async () => {
+            // 检查是否已选择文件
+            const file = fileInput.files[0];
+            if (!file) {
+                alert('请先选择一个文件！');
+                return;
+            }
+
             // 提示用户输入用于访问 API 的凭据
-            const user = prompt("请输入访问此测试器的用户名:", "");
+            const user = prompt("请输入访问此上传器的用户名:", "");
             if (user === null) return; // 用户取消
-            const pass = prompt("请输入访问此测试器的密码:", "");
+            const pass = prompt("请输入访问此上传器的密码:", "");
             if (pass === null) return; // 用户取消
 
             // 禁用按钮并显示加载状态
-            testButton.disabled = true;
-            testButton.textContent = '正在测试...';
-            resultDiv.textContent = '请稍候...';
+            uploadButton.disabled = true;
+            uploadButton.textContent = '正在上传...';
+            resultDiv.textContent = `正在上传文件: ${file.name} (${(file.size / 1024).toFixed(2)} KB)...`;
             resultDiv.classList.remove('error');
 
             try {
-                // 使用 fetch 调用后端的 /api/test
-                const response = await fetch('/api/test', {
-                    method: 'GET',
+                // 使用 fetch 调用后端的 /api/upload
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
                     headers: {
-                        // 创建 Basic Auth 头
-                        'Authorization': 'Basic ' + btoa(user + ':' + pass)
-                    }
+                        // 用于保护 Vercel API 的 Basic Auth 头
+                        'Authorization': 'Basic ' + btoa(user + ':' + pass),
+                        // 将文件名放在自定义头中，供后端读取
+                        'X-Filename': file.name,
+                        // 设置内容类型，让后端和目标服务器正确处理
+                        'Content-Type': file.type || 'application/octet-stream'
+                    },
+                    // 直接将文件对象作为请求体
+                    body: file
                 });
 
-                // 解析 JSON 结果
                 const data = await response.json();
 
-                // 美化输出并显示结果
                 resultDiv.textContent = JSON.stringify(data, null, 2);
                 if (data.status === 'error' || response.status >= 400) {
                     resultDiv.classList.add('error');
                 }
 
             } catch (err) {
-                // 处理网络错误
-                resultDiv.textContent = '调用测试API时出错: ' + err.message;
+                resultDiv.textContent = '调用上传API时出错: ' + err.message;
                 resultDiv.classList.add('error');
             } finally {
-                // 重新启用按钮
-                testButton.disabled = false;
-                testButton.textContent = '再次运行连接测试';
+                uploadButton.disabled = false;
+                uploadButton.textContent = '再次上传';
             }
         });
     </script>
